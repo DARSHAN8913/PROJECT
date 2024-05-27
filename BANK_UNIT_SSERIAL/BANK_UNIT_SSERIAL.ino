@@ -37,7 +37,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 LiquidCrystal_I2C lcd(0x27, 16, 2); 
 
 short h,m,s;
-bool ack_flag=false,wakef=false;
+bool ack_flag=false;
 // int rdypin=14;  //takes input from esp32 to display ready message
 unsigned int altpin=D6; // D7 takes i/p from esp32 for alert signal
 unsigned int ackpin=D7;   //D4 gives a ack signal for the esp32
@@ -53,6 +53,7 @@ int ftime=0,nextime=0;
 bool alt_flag=false;
 bool lcdf=false;
 bool bnm=false;
+int curtimefortimer=0;
 void setup()
 {     lcd.init();                      // Initialize the LCD
   lcd.backlight();                 // Turn on the backlight
@@ -62,11 +63,12 @@ void setup()
                              WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
                              timeClient.begin();
                              timeClient.setTimeOffset(19800); 
-
+ pinMode(pushbtn,INPUT);
   pinMode(altpin,INPUT);
   pinMode(ackpin,OUTPUT);
   digitalWrite(altpin,LOW);
     digitalWrite(ackpin,LOW);
+    digitalWrite(pushbtn,LOW);
   Serial.print("Connecting to Wi-Fi");
   unsigned long ms = millis();
   while (WiFi.status() != WL_CONNECTED)
@@ -109,8 +111,46 @@ void loop()
 }
 
 void DayMode()
-{      
-   String m1="BANK-UNIT:\nSession No: "+((String) sescount)+"\n",m2="",m3="";
+{     
+  if(digitalRead(alt_pin)==1)
+  {  alt_flag=true;
+    stimer();
+  } 
+   Seque();
+
+ 
+    // if((m1.length()>0)&&(m1!="BANK-UNIT:\nSession No: "+((String) sescount)+"\n"))
+    //  {     
+    //    Serial.print(m1);
+    //    Serial.println("Session end......................................\n");
+    //   }
+    //   ++sescount;
+}
+void stimer()
+{  if(curtimefortimer==0) 
+  {
+   curtimefortimer=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),300);
+   }
+ else if(timeco()!=curtimefortimer)
+    {
+  lcd.setCursor(0,0);
+  lcd.print("Respond in:");
+  lcd.setCursor(0,1);
+  lcd.print(timeDifference(timeco(),curtimefortimer));  lcd.print("Secs");
+     if(digitalRead(pushbtn)==1)
+      {   
+        curtimefortimer=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),5);
+      }
+    }
+    else
+    {
+
+    }
+
+}
+void Seque()
+{
+  String m1="BANK-UNIT:\nSession No: "+((String) sescount)+"\n",m2="",m3="";
   
   
      if(first)
@@ -133,9 +173,15 @@ else if (Firebase.ready() && (nextime==timeco()))
     
       nextime=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),10); 
   }
-  else if((digitalRead(altpin)==true)&&(alt_flag==false))
+}
+void NightMode()
+{
+Seque();
+  if((digitalRead(altpin)==true)&&(alt_flag==false))
  {  
-   lcdf=true;
+   alt_flag=true;
+   alt_time=micros();
+   digitalWrite(ackpin,HIGH); 
   }
   else if((alt_flag==true)&&(micros()-alt_time>=10000000))
 {
@@ -147,12 +193,6 @@ else if (Firebase.ready() && (nextime==timeco()))
        m1+="ACK signal sent to esp32: "+((String) (timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds() )+"\n";
   
 }
-    if((m1.length()>0)&&(m1!="BANK-UNIT:\nSession No: "+((String) sescount)+"\n"))
-     {     
-       Serial.print(m1);
-       Serial.println("Session end......................................\n");
-      }
-      ++sescount;
 }
 
 int timeDifference(int a, int b) {
@@ -206,7 +246,7 @@ int addSeconds(int hours, int mins, int secs, int ti)
     int new_secs = remaining_secs % 60;
     return new_hours * 10000 + new_mins * 100 + new_secs;
 }
-int timeDifferenceInSeconds(int h1, int s, int s1, int h2, int m2, int s2)      //past t1<t2 present
+int TimeDiff_SEP_INT(int h1, int s, int s1, int h2, int m2, int s2)      //past t1<t2 present
 {
     // Convert both times into seconds
     int totalSeconds1 = h1 * 3600 + s * 60 + s1;
