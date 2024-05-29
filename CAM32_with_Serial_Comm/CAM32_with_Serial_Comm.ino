@@ -12,12 +12,12 @@
 const char* ssid = "D21";
 const char* password = "Gty@6464";
 // Google Drive folder ID
-const char* googleDriveFolderID = "1v81gFcLLlbi5LD6ueh2pS7luIyLcrtWO";
+const char* googleDriveFolderID = "1xhkyXBWTaUr2s4Baz2XcKzdhMtgXrz9O";
 // Google Drive API endpoint
 const char* googleDriveAPI = "www.googleapis.com";
 // Google Drive API path to upload files
 const char* googleDriveUploadPath = "/upload/drive/v3/files?uploadType=media&supportsAllDrives=true&parents=";
-int pir_pin=13;
+int pir_pin=13,modepin=15;
 bool pirflag=false;
  
 using eloq::camera;
@@ -29,6 +29,9 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 void setup() {
  
     pinMode(pir_pin,INPUT);
+    pinMode(modepin,INPUT);
+    digitalWrite(pir_pin,LOW);
+    digitalWrite(modepin,LOW);
   Serial.begin(115200);
    
  
@@ -66,7 +69,7 @@ void mot_setup()
 }
 void loop() {
  timeClient.update();
- if((timeClient.getHours()<17)&&(timeClient.getHours()>9))
+ if(((timeClient.getHours()<17)&&(timeClient.getHours()>9))||(digitalRead(modepin)==1))
  {
   DayMode();
  }
@@ -86,7 +89,7 @@ void loop() {
 void DayMode()
 {
   if((digitalRead(pir_pin))||pirflag)
-  {  
+  {   
       captureAndUploadImage();
   }
 }

@@ -38,31 +38,26 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 short h,m,s;
 bool ack_flag=false,acs_flag=false;
+int modepin=D5;  //cvv
 // int rdypin=14;  //takes input from esp32 to display ready message
 unsigned int altpin=D6; // D7 takes i/p from esp32 for alert signal
 unsigned int ackpin=D7;   //D4 gives a ack signal for the esp32
 int pushbtn=D8; //push button for img cap
-// unsigned long long sendDataPrevMillis = 0;
-// unsigned int tm1=0,tm2=0;  
 unsigned long long alt_time=0;
-// unsigned long count = 0;
 unsigned long long sescount=0;
-// int kit=0,ki=180;
-// bool first=true;
-// int ftime=0,nextime=0;
-// bool alt_flag=false;
-// bool lcdf=false;
-// bool bnm=false;
+bool first=true,alt_flag=false,mode_flag=false;
+unsigned int ftime=0,nextime=0;
 unsigned int resptime=0,captime=0;
 
 void PINOUT()
-{
+{ pinMode(modepin,OUTPUT);
   pinMode(pushbtn,INPUT);
   pinMode(altpin,INPUT);
   pinMode(ackpin,OUTPUT);
   digitalWrite(altpin,LOW);
   digitalWrite(ackpin,LOW);
   digitalWrite(pushbtn,LOW);
+  digitalWrite(modepin,LOW);
 }
 void wifinit()
 {  
@@ -110,8 +105,17 @@ fireinit();
 
 void loop()
 {   timeClient.update();
+    Firebase.RTDB.getBool(&fbdo, F("/BANK-UNIT/MODE"), &mode_flag)? "MODE SIGNAL RECIEVED AT: "+timeClient.getFormattedTime();+"\n" : fbdo.errorReason().c_str();
    String LOGS="";
-   if((timeClient.getHours()<17)&&(timeClient.getHours()>9))
+   if(mode_flag)
+   {
+      digitalWrite(modepin,HIGH);
+   }
+   else
+   {
+     digitalWrite(modepin,LOW);
+   }
+   if((timeClient.getHours()<17)&&(timeClient.getHours()>9)&&mode_flag)
  {
   DayMode();
  }
