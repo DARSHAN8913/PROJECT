@@ -1,0 +1,81 @@
+#include <ESP8266WiFi.h>
+#include <Firebase_ESP_Client.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
+// Firebase parameters
+#define FIREBASE_HOST "your-firebase-host.firebaseio.com"
+#define FIREBASE_AUTH "your-firebase-authentication"
+
+// WiFi parameters
+const char* ssid = "your-wifi-ssid";
+const char* password = "your-wifi-password";
+
+// NTP parameters
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org");
+
+// Define the delay between signal transmissions (milliseconds)
+const unsigned long signalInterval = 10000; // 10 seconds
+
+unsigned long lastSignalTime = 0;
+
+FirebaseData firebaseData;
+
+// Define the code to be sent from Point A
+const int expectedCode = 1234; // Example code
+
+void setup() {
+  Serial.begin(115200);
+
+  // Connect to WiFi
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+
+  // Initialize Firebase
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+
+  // Initialize NTP client
+  timeClient.begin();
+}
+
+void loop() {
+  // Update time from NTP server
+  timeClient.update();
+  
+  // Send timestamp to Firebase every signalInterval milliseconds
+  if (millis() - lastSignalTime >= signalInterval) {
+    sendTimestampToFirebase();
+    lastSignalTime = millis();
+  }
+
+  // Check for acknowledgment from Point B
+  if (Firebase.getString("acknowledgment", firebaseData)) {
+    String ack = firebaseData.stringData();
+    if (ack == "matched") {
+      Serial.println("Code matched, cycle complete");
+      // Proceed with further actions if needed
+    } else if (ack == "not_matched") {
+      Serial.println("Code not matched, report to admin");
+      // Report to admin in Firebase
+      Firebase.setString("report", "Code mismatch");
+    }
+  }
+}
+
+void sendTimestampToFirebase() {
+  // Get current timestamp
+  unsigned long timestamp = timeClient.getEpochTime();
+  
+  // Send timestamp to Firebase
+  Firebase.setInt("timestamp", timestamp);
+  Serial.println("Timestamp sent to Firebase: " + String(timestamp));
+
+  // Send code to Firebase
+  Firebase.setInt("code", expectedCode);
+  Serial.println("Code sent to Firebase: " + String(expectedCode));
+}

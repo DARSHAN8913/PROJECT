@@ -1,0 +1,11 @@
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org");
+
+ timeClient.begin();
+  timeClient.setTimeOffset(19800);
+
+timeClient.update();
+timeClient.getFormattedTime();

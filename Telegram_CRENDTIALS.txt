@@ -1,0 +1,18 @@
+TELEGRAM BOT TOKEN: 6074310627:AAFdo4kdVlI8gcPvqmWvqZWcGaSJ0cYa1dI
+  6074310627
+
+MY_CHAT_ID: 1241513009
+
+Encryprion_Group_CHAT_ID: -1001540744854
+
+#define USER_EMAIL "rakasvan1@gmail.com"
+#define USER_PASSWORD "Gta@653"
+ user 2 for FirebaseRTDB:
+email: melapob154@molyg.com
+pass:  Hello@256
+
+FireBase API_KEY AIzaSyAYX_h_nf04LI8IxDzMmaccX7l6jozJiFM
+RTDB URL https://enr2134-2ee7c-default-rtdb.asia-southeast1.firebasedatabase.app/
+
+ENCR23 BOT TOKEN: 6564381229:AAHkkZwSwhw8S_Y9r5DXXV9siqHlTDcK6Kw
+
