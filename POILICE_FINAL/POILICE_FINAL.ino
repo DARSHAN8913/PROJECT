@@ -41,30 +41,9 @@ unsigned long long sendDataPrevMillis = 0,sescount=0;
 int tm=0,t2=0,tm1=0;  
 bool bf=false;
 bool ft=true;
-void setup()
-{    
-     Serial.begin(115200);
-
-                             WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-                             timeClient.begin();
-                             timeClient.setTimeOffset(19800); 
-
-  pinMode(buzpin,OUTPUT);
-  digitalWrite(buzpin,LOW);
-  Serial.print("Connecting to Wi-Fi");
-  unsigned long ms = millis();
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.print(".");
-    delay(240);
-  }
-  Serial.println();
-  Serial.print("Connected with IP: ");
-  Serial.println(WiFi.localIP());
-  Serial.println();
-
-  Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
-
+void frb()
+{
+   Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
   config.api_key = API_KEY;
   auth.user.email = USER_EMAIL;
   auth.user.password = USER_PASSWORD;
@@ -78,14 +57,40 @@ void setup()
  Firebase.setDoubleDigits(5);
   config.timeout.serverResponse = 10 * 1000;
 }
+void wif()
+{
+   Serial.print("Connecting to Wi-Fi");
+  unsigned long ms = millis();
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.print(".");
+    delay(240);
+  }
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
+}
+void setup()
+{    
+     Serial.begin(115200);
+
+                             WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+                             timeClient.begin();
+                             timeClient.setTimeOffset(19800); 
+  pinMode(buzpin,OUTPUT);
+  digitalWrite(buzpin,LOW);
+ wif();
+frb(); 
+}
 
 
 void loop()
-{ int td=0;   
-     currtime=timeco();
-     
+{ 
+  int td=0;    
    String message="POLICE-UNIT\nSession No: "+((String) sescount)+"\n";
   timeClient.update();
+  currtime=timeco();
     if(ft)
     {    tm1=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),50);
       message+=Firebase.RTDB.setInt(&fbdo, ("/INIT/seq"), tm1) ? "INITIATE AT: "+((String) tm1)+"\n" : fbdo.errorReason().c_str();
@@ -109,18 +114,20 @@ void loop()
           s=tm-h*10000-m*100;
     
              td= timeDifferenceInSeconds(h,m,s,timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds());
-                 
+
 
           if(td>10||bf)
           {      message+="Delayed Time diff: "+((String) td)+"\n";
                    digitalWrite(buzpin,HIGH);
                    message+="Current Time: "+((String) currtime)+"\n"+"Prev Time: "+((String) prevtime)+"\n";
           }
-          else{
+          else
+          {
             message+="Not Delayed Time diff: "+((String) td)+"\n";
                digitalWrite(buzpin,LOW);
                  message+="Current Time: "+((String) currtime)+"\n"+"Prev Time: "+((String) prevtime)+"\n";
           }
+          
           nextime=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),10);
           // if(digitalRead(buzpin)){
           //   // ? "ok" : fbdo.errorReason().c_str();
@@ -140,6 +147,7 @@ void loop()
 //   }
  ++sescount;
 }
+
 int timeco()
 {  
   int miui=(timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds();

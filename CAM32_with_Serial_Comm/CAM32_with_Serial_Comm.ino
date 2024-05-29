@@ -1,13 +1,13 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <eloquent_esp32cam.h>
-#include <eloquent_esp32cam/motion/detection.h>
+// #include <eloquent_esp32cam/motion/detection.h>
 #include <eloquent_esp32cam/extra/esp32/telegram.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
 #include <SoftwareSerial.h>   
-#define TELEGRAM_TOKEN "1234567890:AABBCCDDEEFFGGHHIILLMMN-NOOPPQQRRSS"
-#define TELEGRAM_CHAT "0123456789"
+#define TELEGRAM_TOKEN "6074310627:AAFdo4kdVlI8gcPvqmWvqZWcGaSJ0cYa1dI"
+#define TELEGRAM_CHAT "-1001540744854"
 // WiFi credentials
 const char* ssid = "D21";
 const char* password = "Gty@6464";
@@ -17,20 +17,17 @@ const char* googleDriveFolderID = "1v81gFcLLlbi5LD6ueh2pS7luIyLcrtWO";
 const char* googleDriveAPI = "www.googleapis.com";
 // Google Drive API path to upload files
 const char* googleDriveUploadPath = "/upload/drive/v3/files?uploadType=media&supportsAllDrives=true&parents=";
-int pir_pin=12;
+int pir_pin=13;
 bool pirflag=false;
-static const int rxpin = 13, txpin = 15;         
-static const uint32_t Baud =115200 ;     
-SoftwareSerial ss(rxpin, txpin);
-
+ 
 using eloq::camera;
-using eloq::motion::detection;
+// using eloq::motion::detection;
 using eloq::wifi;
 using eloq::telegram;
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
 void setup() {
-  ss.begin(Baud);  
+ 
     pinMode(pir_pin,INPUT);
   Serial.begin(115200);
    
@@ -50,17 +47,17 @@ void setup() {
 }
 void mot_setup()
 {
-   camera.pinout.wrover();
+   camera.pinout.aithinker();
     camera.brownout.disable();
     camera.resolution.vga();
     camera.quality.high();
 
     // see example of motion detection for config values
-    detection.skip(5);
-    detection.stride(1);
-    detection.threshold(5);
-    detection.ratio(0.2);
-    detection.rate.atMostOnceEvery(5).seconds();
+    // detection.skip(5);
+    // detection.stride(1);
+    // detection.threshold(5);
+    // detection.ratio(0.2);
+    // detection.rate.atMostOnceEvery(5).seconds();
 
     // init camera
     while (!camera.begin().isOk())
@@ -90,25 +87,7 @@ void DayMode()
 {
   if((digitalRead(pir_pin))||pirflag)
   {  
-    //set Tx to high tht starts the timer  i.e send 'T'
-    //keep it until Ack via Rx is not recieved  recieve Ab
-    //after this check for button trigger via Rx
-    // for ex:
-  if(!(ss.available()>0))
-   {
-     ss.write('T');
-     }
-     else
-     {
-      if(((String) ss.read())=="Ab")
-      {
-        ss.write('R');
-        delay(2000);
-         captureAndUploadImage();
-      }
-
-     }
-
+      captureAndUploadImage();
   }
 }
 
@@ -117,20 +96,16 @@ void NightMode()
   if(digitalRead(pir_pin))
   {
      // capture picture
-    if (!camera.capture().isOk()) {
+    if (!camera.capture().isOk()) 
+    {
         Serial.println(camera.exception.toString());
         return;
     }
-    // run motion detection
-    if (!detection.run().isOk()) {
-        Serial.println(detection.exception.toString());
-        return;
-    }
-    // on motion, perform action
-    if (detection.triggered())
-       {
-        // digitalWrite(tx_pin,HIGH);
-       }
+   if (telegram.to(TELEGRAM_CHAT).send(camera.frame).isOk())
+        Serial.println("Photo sent to Telegram");
+    else
+        Serial.println(telegram.exception.toString());
+ 
   }
 }
 

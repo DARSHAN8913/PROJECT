@@ -37,38 +37,36 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 LiquidCrystal_I2C lcd(0x27, 16, 2); 
 
 short h,m,s;
-bool ack_flag=false;
+bool ack_flag=false,acs_flag=false;
 // int rdypin=14;  //takes input from esp32 to display ready message
 unsigned int altpin=D6; // D7 takes i/p from esp32 for alert signal
 unsigned int ackpin=D7;   //D4 gives a ack signal for the esp32
 int pushbtn=D8; //push button for img cap
-unsigned long long sendDataPrevMillis = 0;
-unsigned int tm1=0,tm2=0;  
+// unsigned long long sendDataPrevMillis = 0;
+// unsigned int tm1=0,tm2=0;  
 unsigned long long alt_time=0;
-unsigned long count = 0;
+// unsigned long count = 0;
 unsigned long long sescount=0;
-int kit=0,ki=180;
-bool first=true;
-int ftime=0,nextime=0;
-bool alt_flag=false;
-bool lcdf=false;
-bool bnm=false;
-int curtimefortimer=0;
-void setup()
-{     lcd.init();                      // Initialize the LCD
-  lcd.backlight();                 // Turn on the backlight
- 
-     Serial.begin(115200);
+// int kit=0,ki=180;
+// bool first=true;
+// int ftime=0,nextime=0;
+// bool alt_flag=false;
+// bool lcdf=false;
+// bool bnm=false;
+unsigned int resptime=0,captime=0;
 
-                             WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-                             timeClient.begin();
-                             timeClient.setTimeOffset(19800); 
- pinMode(pushbtn,INPUT);
+void PINOUT()
+{
+  pinMode(pushbtn,INPUT);
   pinMode(altpin,INPUT);
   pinMode(ackpin,OUTPUT);
   digitalWrite(altpin,LOW);
-    digitalWrite(ackpin,LOW);
-    digitalWrite(pushbtn,LOW);
+  digitalWrite(ackpin,LOW);
+  digitalWrite(pushbtn,LOW);
+}
+void wifinit()
+{  
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to Wi-Fi");
   unsigned long ms = millis();
   while (WiFi.status() != WL_CONNECTED)
@@ -80,7 +78,10 @@ void setup()
   Serial.print("Connected with IP: ");
   Serial.println(WiFi.localIP());
   Serial.println();
-
+}
+void fireinit()
+{
+  
   Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
 
   config.api_key = API_KEY;
@@ -96,28 +97,49 @@ void setup()
  Firebase.setDoubleDigits(5);
   config.timeout.serverResponse = 10 * 1000;
 }
+void setup()
+{     lcd.init();                      // Initialize the LCD
+  lcd.backlight();                 // Turn on the backlight
+ PINOUT();
+ wifinit();
+     Serial.begin(115200);    
+            timeClient.begin();
+            timeClient.setTimeOffset(19800); 
+fireinit();
+}
 
 void loop()
 {   timeClient.update();
+   String LOGS="";
    if((timeClient.getHours()<17)&&(timeClient.getHours()>9))
  {
   DayMode();
  }
- else{
+ else
+ {
   NightMode();
  }
-  
-
+ if(LOGS!="")
+ {
+  Serial.println(LOGS);
+ }
+++sescount;
 }
 
-void DayMode()
-{     
-  if(digitalRead(alt_pin)==1)
+String DayMode()
+{     String dlog="";
+  if((digitalRead(alt_pin)==1)||alt_flag)
   {  alt_flag=true;
+      dlog+="Person Detected";
     stimer();
   } 
-   Seque();
+  
+   dlog+=Seque();
 
+if(dlog!="")
+{
+   return dlog;
+}
  
     // if((m1.length()>0)&&(m1!="BANK-UNIT:\nSession No: "+((String) sescount)+"\n"))
     //  {     
@@ -126,33 +148,70 @@ void DayMode()
     //   }
     //   ++sescount;
 }
+
 void stimer()
-{  if(curtimefortimer==0) 
+{   
+  if(resptime==0) 
   {
-   curtimefortimer=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),300);
+   resptime=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),300);
    }
- else if(timeco()!=curtimefortimer)
-    {
-  lcd.setCursor(0,0);
-  lcd.print("Respond in:");
-  lcd.setCursor(0,1);
-  lcd.print(timeDifference(timeco(),curtimefortimer));  lcd.print("Secs");
+ else if(timeco()!=resptime)
+    {      
+            lcdw("Respond in:",((String) timeDifference(timeco(),resptime))+"Secs");
      if(digitalRead(pushbtn)==1)
       {   
-        curtimefortimer=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),5);
+        if(captime==0)
+        {
+          captime=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),5);
+        }
+        else if(timeDifference(timeco(),captime)>3)
+        {
+         lcdw("Stand Still for:",((String) timeDifference(timeco(),captime))+"Secs"); 
+        }
+        else if(timeDifference(timeco(),captime)<3)
+        {
+          digitalWrite(ackpin,HIGH);
+           lcdw("Stand Still for:",((String) timeDifference(timeco(),captime))+"Secs"); 
+        }
+        else if(timeco()==captime)
+        {
+           digitalWrite(ackpin,LOW);
+           Firebase.RTDB.getBool(&fbdo, F("/BANK-UNIT/alert"), &acs_flag)? "ACCESS FLAG REC AT: "+m3+"\n" : fbdo.errorReason().c_str();
+           if(acs_flag)
+           {
+            lcdw("ACCESS GRANTED!","");
+           }
+           else
+           {
+             lcdw("ACCESS DENIED!!","");
+           }
+        }
+
       }
     }
-    else
-    {
-
+    else if(resptime==timeco())
+    {         digitalWrite(ackpin,HIGH);
+          lcdw("Timeout!!","ACCESS DENIED!!");
+          Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/TIME_OUT"), true)? "TIME-OUT SIGNAL SENT AT: "+timeClient.getFormattedTime()+"\n" : fbdo.errorReason().c_str();
+           alt_flag=false;  resptime=0;
+           delay(3000);
+           digitalWrite(ackpin,LOW);
     }
 
 }
-void Seque()
+      
+void  lcdw(String l1,String l2)
+{
+   lcd.setCursor(0,0);
+  lcd.print(l1);
+  lcd.setCursor(0,1);
+  lcd.print(l2);  
+}
+
+String Seque()
 {
   String m1="BANK-UNIT:\nSession No: "+((String) sescount)+"\n",m2="",m3="";
-  
-  
+    
      if(first)
     {      
     m1+=Firebase.RTDB.getInt(&fbdo, ("/INIT/seq"), &ftime) ? "get INITIATING sequence ok: "+((String) ftime)+"\n" : fbdo.errorReason().c_str();
@@ -173,12 +232,17 @@ else if (Firebase.ready() && (nextime==timeco()))
     
       nextime=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),10); 
   }
+  if(m1!=("BANK-UNIT:\nSession No: "+((String) sescount)+"\n"))
+  {
+    return m1;
+  }
 }
-void NightMode()
-{
-Seque();
+
+String NightMode()
+{  String Nlogs="";
+    Nlogs+=Seque();
   if((digitalRead(altpin)==true)&&(alt_flag==false))
- {  
+ {         Nlogs += Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/alert"), true)? "THREAT SIGNAL SENT AT: "+timeClient.getFormattedTime()+"\n" : fbdo.errorReason().c_str();
    alt_flag=true;
    alt_time=micros();
    digitalWrite(ackpin,HIGH); 
@@ -187,12 +251,13 @@ Seque();
 {
       alt_flag=false;
        digitalWrite(ackpin,LOW);  
-       int tm3=(timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds();
-       m3=(String) tm3;
-       m1 += Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/alert"), false)? "NEUTRAL SIGNAL SENT AT: "+m3+"\n" : fbdo.errorReason().c_str();
-       m1+="ACK signal sent to esp32: "+((String) (timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds() )+"\n";
-  
+       Nlogs+= Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/alert"), false)? "NEUTRAL SIGNAL SENT AT: "+timeClient.getFormattedTime()+"\n" : fbdo.errorReason().c_str();
+       Nlogs+="ACK signal sent to esp32: "+((String) (timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds() )+"\n";
 }
+  if(Nlogs!="")
+  {
+    return Nlogs;
+  }
 }
 
 int timeDifference(int a, int b) {
@@ -201,25 +266,19 @@ int timeDifference(int a, int b) {
 
     return std::abs(seconds_a - seconds_b);
 }
-void press()
-{   int i=180;
-//  while(i>0)
-//  {   
-   
-//  }
-}
-void still()
-{  
-  for(int i=5;i>0;i++)
-  {  lcd.setCursor(0,0);
-    lcd.print("Stand Still for:");
-    lcd.setCursor(0,1);
-    lcd.print(i);  lcd.print("Secs");
-    delay(1000);
 
-  }
-  bnm=true;
-}
+// void still()
+// {  
+//   for(int i=5;i>0;i++)
+//   {  lcd.setCursor(0,0);
+//     lcd.print("Stand Still for:");
+//     lcd.setCursor(0,1);
+//     lcd.print(i);  lcd.print("Secs");
+//     delay(1000);
+
+//   }
+//   bnm=true;
+// }
 int timeco()
 {  
   int miui=(timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds();
