@@ -45,7 +45,7 @@ unsigned int ackpin=D7;   //D4 gives a ack signal for the esp32
 int pushbtn=D8; //push button for img cap
 unsigned long long alt_time=0;
 unsigned long long sescount=0;
-bool first=true,alt_flag=false,mode_flag=false;
+bool first=true,alt_flag=false,mode_flag=false,mf=true;
 unsigned int ftime=0,nextime=0;
 unsigned int resptime=0,captime=0;
 
@@ -105,8 +105,12 @@ fireinit();
 
 void loop()
 {   timeClient.update();
-    Firebase.RTDB.getBool(&fbdo, F("/BANK-UNIT/MODE"), &mode_flag)? "MODE SIGNAL RECIEVED AT: "+timeClient.getFormattedTime();+"\n" : fbdo.errorReason().c_str();
-   String LOGS="";
+String LOGS="";
+if(mf)
+{
+LOGS+=Firebase.RTDB.getBool(&fbdo, F("/BANK-UNIT/MODE"), &mode_flag)? "MODE SIGNAL RECIEVED AT: "+(timeClient.getFormattedTime())+"\n" : fbdo.errorReason().c_str();
+mf=false;
+}   
    if(mode_flag)
    {
       digitalWrite(modepin,HIGH);
@@ -132,7 +136,7 @@ void loop()
 
 String DayMode()
 {     String dlog="";
-  if((digitalRead(alt_pin)==1)||alt_flag)
+  if((digitalRead(altpin)==1)||alt_flag)
   {  alt_flag=true;
       dlog+="Person Detected";
     stimer();
@@ -144,7 +148,7 @@ if(dlog!="")
 {
    return dlog;
 }
- 
+return ""; 
     // if((m1.length()>0)&&(m1!="BANK-UNIT:\nSession No: "+((String) sescount)+"\n"))
     //  {     
     //    Serial.print(m1);
@@ -180,7 +184,7 @@ void stimer()
         else if(timeco()==captime)
         {
            digitalWrite(ackpin,LOW);
-           Firebase.RTDB.getBool(&fbdo, F("/BANK-UNIT/alert"), &acs_flag)? "ACCESS FLAG REC AT: "+m3+"\n" : fbdo.errorReason().c_str();
+           Firebase.RTDB.getBool(&fbdo, F("/BANK-UNIT/alert"), &acs_flag)? "ACCESS FLAG REC AT: "+(timeClient.getFormattedTime())+"\n" : fbdo.errorReason().c_str();
            if(acs_flag)
            {
             lcdw("ACCESS GRANTED!","");
@@ -214,7 +218,7 @@ void  lcdw(String l1,String l2)
 
 String Seque()
 {
-  String m1="BANK-UNIT:\nSession No: "+((String) sescount)+"\n",m2="",m3="";
+  String m1=("BANK-UNIT:\nSession No: "+((String) sescount)+"\n"),m2="",m3="";
     
      if(first)
     {      
@@ -230,16 +234,17 @@ else if (Firebase.ready() && (nextime==timeco()))
   {  
     // sendDataPrevMillis = micros();
     
-     tm1=(timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds();
-        m2 +=(String) tm1;
-           m1+= Firebase.RTDB.setInt(&fbdo, ("/BANK-UNIT/seq"), tm1) ? "SEQUENCE SENT SUCCESSFULLY: "+m2+"\n" : fbdo.errorReason().c_str(); 
+     nextime=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),10);
+        // m2 +=(String) tm1;
+           m1+= Firebase.RTDB.setInt(&fbdo, ("/BANK-UNIT/seq"), nextime) ? "SEQUENCE SENT SUCCESSFULLY: "+(timeClient.getFormattedTime())+"\n" : fbdo.errorReason().c_str(); 
     
-      nextime=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),10); 
+      // nextime=addSeconds(timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds(),10); 
   }
   if(m1!=("BANK-UNIT:\nSession No: "+((String) sescount)+"\n"))
   {
     return m1;
   }
+  return "";
 }
 
 String NightMode()
@@ -262,6 +267,7 @@ String NightMode()
   {
     return Nlogs;
   }
+  return "";
 }
 
 int timeDifference(int a, int b) {
