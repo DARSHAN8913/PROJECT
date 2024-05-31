@@ -37,7 +37,7 @@ void wifset()
 void setup() {
     pinMode(modepin,INPUT);
         pinMode(capin,INPUT);
-  Serial.begin(115200);
+  Serial.begin(115200); 
   mot_setup();
  wifset();
  
