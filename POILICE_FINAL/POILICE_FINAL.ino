@@ -113,8 +113,8 @@ void loop()
           m=(tm-h*10000)/100;
           s=tm-h*10000-m*100;
     
-             td= timeDifferenceInSeconds(h,m,s,timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds());
-
+            //  td= timeDifferenceInSeconds(h,m,s,timeClient.getHours(),timeClient.getMinutes(),timeClient.getSeconds());
+          td=2;
 
           if(td>10||bf)
           {      message+="Delayed Time diff: "+((String) td)+"\n";
@@ -175,7 +175,10 @@ int timeDifferenceInSeconds(int h1, int s, int s1, int h2, int m2, int s2)      
 
     // Calculate the time difference in seconds
     int timeDifference = totalSeconds2 - totalSeconds1;
-
+    if(timeDifference<0)
+    {
+      timeDifference=timeDifference*-1;
+    }
     return timeDifference;
 }
 // String inttostr(int n){

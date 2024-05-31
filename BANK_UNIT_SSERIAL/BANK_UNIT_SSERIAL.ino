@@ -104,7 +104,8 @@ fireinit();
 }
 
 void loop()
-{   timeClient.update();
+{  
+   timeClient.update();
 String LOGS="";
 if(mf)
 {
@@ -121,11 +122,11 @@ mf=false;
    }
    if((timeClient.getHours()<17)&&(timeClient.getHours()>9)&&mode_flag)
  {
-  DayMode();
+  LOGS+=DayMode();
  }
  else
  {
-  NightMode();
+  LOGS+=NightMode();
  }
  if(LOGS!="")
  {
@@ -135,7 +136,7 @@ mf=false;
 }
 
 String DayMode()
-{     String dlog="";
+{     String dlog="DAY MODE SESSION";
   if((digitalRead(altpin)==1)||alt_flag)
   {  alt_flag=true;
       dlog+="Person Detected";
@@ -144,7 +145,7 @@ String DayMode()
   
    dlog+=Seque();
 
-if(dlog!="")
+if(dlog!="DAY MODE SESSION")
 {
    return dlog;
 }
@@ -248,7 +249,7 @@ else if (Firebase.ready() && (nextime==timeco()))
 }
 
 String NightMode()
-{  String Nlogs="";
+{  String Nlogs="NIGHT MODE SESSION";
     Nlogs+=Seque();
   if((digitalRead(altpin)==true)&&(alt_flag==false))
  {         Nlogs += Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/alert"), true)? "THREAT SIGNAL SENT AT: "+timeClient.getFormattedTime()+"\n" : fbdo.errorReason().c_str();
@@ -263,7 +264,7 @@ String NightMode()
        Nlogs+= Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/alert"), false)? "NEUTRAL SIGNAL SENT AT: "+timeClient.getFormattedTime()+"\n" : fbdo.errorReason().c_str();
        Nlogs+="ACK signal sent to esp32: "+((String) (timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds() )+"\n";
 }
-  if(Nlogs!="")
+  if(Nlogs!="NIGHT MODE SESSION")
   {
     return Nlogs;
   }
