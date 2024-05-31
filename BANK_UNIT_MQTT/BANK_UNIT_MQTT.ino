@@ -41,37 +41,29 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 #define MSG_BUFFER_SIZE	(50)
 char msg[MSG_BUFFER_SIZE];
+String mesg=""
+unsigned int msglen;
 short h,m,s;
 bool ack_flag=false,acs_flag=false;
 int modepin=D5;  //cvv
 // int rdypin=14;  //takes input from esp32 to display ready message
 unsigned int altpin=D6; // D7 takes i/p from esp32 for alert signal
 unsigned int ackpin=D7;   //D4 gives a ack signal for the esp32
-int pushbtn=D8; //push button for img cap
+unsigned int pushbtn=D8; //push button for img cap
 unsigned long long alt_time=0;
 unsigned long long sescount=0;
 bool first=true,alt_flag=false,mode_flag=false,mf=true;
 unsigned int ftime=0,nextime=0;
 unsigned int resptime=0,captime=0;
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-
-  // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1') {
-    digitalWrite(BUILTIN_LED, LOW);   // Turn the LED on (Note that LOW is the voltage level
-    // but actually the LED is on; this is because
-    // it is active low on the ESP-01)
-  } else {
-    digitalWrite(BUILTIN_LED, HIGH);  // Turn the LED off by making the voltage HIGH
-  }
-
+void callback(char* topic, byte* payload,unsigned int length) {
+  Serial.print("Message arrived from");
+  Serial.println(topic);
+    mlen=length;
+  for (int i = 0; i < length; i++)
+  {
+      mesg+=((char)payload[i]);
+  } 
 }
 
 void reconnect() {
@@ -155,7 +147,8 @@ fireinit();
 }
 
 void loop()
-{   if (!client.connected()) {
+{   
+  if (!client.connected()) {
     reconnect();
   }
   client.loop();
@@ -205,12 +198,7 @@ if(dlog!="DAY MODE SESSION")
    return dlog;
 }
 return ""; 
-    // if((m1.length()>0)&&(m1!="BANK-UNIT:\nSession No: "+((String) sescount)+"\n"))
-    //  {     
-    //    Serial.print(m1);
-    //    Serial.println("Session end......................................\n");
-    //   }
-    //   ++sescount;
+   
 }
 
 void stimer()
