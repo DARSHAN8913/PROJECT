@@ -10,13 +10,13 @@
 const char* ssid = "D21";
 const char* password = "Gty@6464";
 // Google Drive folder ID
-const char* googleDriveFolderID = "1v81gFcLLlbi5LD6ueh2pS7luIyLcrtWO";
+const char* googleDriveFolderID = "13j_xcD2NQHRv61MXLwjwrqtKayOITCEc";
 // Google Drive API endpoint
 const char* googleDriveAPI = "www.googleapis.com";
 // Google Drive API path to upload files
 const char* googleDriveUploadPath = "/upload/drive/v3/files?uploadType=media&supportsAllDrives=true&parents=";
-int modepin=13;
-int capin=15;
+int modepin=15;
+int capin=13;
 
 using eloq::camera;
 using eloq::wifi;

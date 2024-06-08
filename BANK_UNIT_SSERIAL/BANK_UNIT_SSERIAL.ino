@@ -41,7 +41,7 @@ bool ack_flag=false,acs_flag=false;
 int modepin=D5;  //cvv
 // int rdypin=14;  //takes input from esp32 to display ready message
 unsigned int altpin=D6; // D7 takes i/p from esp32 for alert signal
-unsigned int ackpin=D7;   //D4 gives a ack signal for the esp32
+unsigned int capin=D7;   //D4 gives a ack signal for the esp32
 int pushbtn=D8; //push button for img cap
 unsigned long long alt_time=0;
 unsigned long long sescount=0;
@@ -53,9 +53,9 @@ void PINOUT()
 { pinMode(modepin,OUTPUT);
   pinMode(pushbtn,INPUT);
   pinMode(altpin,INPUT);
-  pinMode(ackpin,OUTPUT);
+  pinMode(capin,OUTPUT);
   digitalWrite(altpin,LOW);
-  digitalWrite(ackpin,LOW);
+  digitalWrite(capin,LOW);
   digitalWrite(pushbtn,LOW);
   digitalWrite(modepin,LOW);
 }
@@ -179,12 +179,12 @@ void stimer()
         }
         else if(timeDifference(timeco(),captime)<3)
         {
-          digitalWrite(ackpin,HIGH);
+          digitalWrite(capin,HIGH);
            lcdw("Stand Still for:",((String) timeDifference(timeco(),captime))+"Secs"); 
         }
         else if(timeco()==captime)
         {
-           digitalWrite(ackpin,LOW);
+           digitalWrite(capin,LOW);
            Firebase.RTDB.getBool(&fbdo, F("/BANK-UNIT/alert"), &acs_flag)? "ACCESS FLAG REC AT: "+(timeClient.getFormattedTime())+"\n" : fbdo.errorReason().c_str();
            if(acs_flag)
            {
@@ -199,12 +199,12 @@ void stimer()
       }
     }
     else if(resptime==timeco())
-    {         digitalWrite(ackpin,HIGH);
+    {         digitalWrite(capin,HIGH);
           lcdw("Timeout!!","ACCESS DENIED!!");
           Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/TIME_OUT"), true)? "TIME-OUT SIGNAL SENT AT: "+timeClient.getFormattedTime()+"\n" : fbdo.errorReason().c_str();
            alt_flag=false;  resptime=0;
            delay(3000);
-           digitalWrite(ackpin,LOW);
+           digitalWrite(capin,LOW);
     }
 
 }
@@ -255,12 +255,12 @@ String NightMode()
  {         Nlogs += Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/alert"), true)? "THREAT SIGNAL SENT AT: "+timeClient.getFormattedTime()+"\n" : fbdo.errorReason().c_str();
    alt_flag=true;
    alt_time=micros();
-   digitalWrite(ackpin,HIGH); 
+   digitalWrite(capin,HIGH); 
   }
   else if((alt_flag==true)&&(micros()-alt_time>=10000000))
 {
       alt_flag=false;
-       digitalWrite(ackpin,LOW);  
+       digitalWrite(capin,LOW);  
        Nlogs+= Firebase.RTDB.setBool(&fbdo, F("/BANK-UNIT/alert"), false)? "NEUTRAL SIGNAL SENT AT: "+timeClient.getFormattedTime()+"\n" : fbdo.errorReason().c_str();
        Nlogs+="ACK signal sent to esp32: "+((String) (timeClient.getHours()*10000)+(timeClient.getMinutes()*100)+timeClient.getSeconds() )+"\n";
 }
